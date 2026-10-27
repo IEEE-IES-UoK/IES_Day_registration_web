@@ -1,0 +1,12 @@
+{
+  "name": "ieee-ies-day-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "IEEE IES Day registration website with Vercel and Google Sheets",
+  "engines": { "node": "24.x" },
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "test": "node --test tests/test_vercel.cjs tests/test_apps_script.cjs tests/test_build.cjs",
+    "test:ui": "python3 test_site.py"
+  }
+}

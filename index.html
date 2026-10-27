@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
+    <meta content="#100a08" name="theme-color" />
+    <meta
+        content="Join IEEE IES Day on November 12, 2026, from 9:00 AM to 12 noon at the A11 Building Auditorium, University of Kelaniya. Attendees receive an e-certificate; join the quiz for a chance to win prizes."
+        name="description" />
+    <meta content="website" property="og:type" />
+    <meta content="IEEE IES Day | Registration" property="og:title" />
+    <meta
+        content="IEEE IES Day: November 12, 2026, 9:00 AM–12 noon at the A11 Building Auditorium, University of Kelaniya. E-certificates for attendees and quiz prizes."
+        property="og:description" />
+    <title>IEEE IES Day — Registration</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&amp;family=DM+Sans:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link href="styles.css" rel="stylesheet" />
+    <link href="form-theme.css" rel="stylesheet" />
+</head>
+
+<body class="site-body">
+    <main>
+        <section aria-labelledby="heroTitle" class="hero" id="welcome">
+            <h1 class="sr-only" id="heroTitle">IEEE IES Day</h1>
+            <div class="hero-inner">
+                <p class="hero-invitation">IEEE IES · UNIVERSITY OF KELANIYA</p>
+                <div class="hero-visual">
+                    <div class="event-card">
+                        <span class="event-card-kicker">YOU’RE INVITED</span>
+                        <strong>IEEE<br />IES DAY</strong>
+                        <span class="event-card-date">12 NOVEMBER 2026</span>
+                        <span class="event-card-time"><span>9:00 AM</span><span class="time-separator" aria-hidden="true">—</span><span>12 NOON</span></span>
+                        <span class="event-card-location">A11 Building Auditorium<br />University of Kelaniya</span>
+                        <div class="event-card-perks">
+                            <span class="event-card-perk certificate-perk"><strong>E-CERTIFICATE</strong><small>For attendees</small></span>
+                            <span class="event-card-perk quiz-perk"><strong>QUIZ &amp; WIN</strong><small>Compete for prizes!</small></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-actions">
+                    <a class="register-cta" href="#registration">Register for IEEE IES Day <span aria-hidden="true"
+                            class="arrow">↗</span></a>
+                    <p class="hero-microcopy">November 12, 2026 <span aria-hidden="true">·</span> University of Kelaniya
+                    </p>
+                </div>
+            </div>
+            <div class="hero-transition" aria-hidden="true"></div>
+        </section>
+
+        <section aria-labelledby="registrationTitle" class="registration-area" id="registration">
+            <div class="form-shell" id="registrationFormShell">
+                <div class="form-heading">
+                    <div class="eyebrow">IEEE · IES Day 2026</div>
+                    <h2 id="registrationTitle">Registration</h2>
+                    <p>November 12, 2026 · 9:00 AM–12 noon<br />A11 Building Auditorium, University of Kelaniya</p>
+                </div>
+                <form class="form-card" id="registrationForm" novalidate="">
+                    <div class="field-grid">
+                        <div class="field" id="fieldFirstName"><label for="firstName">Full name <span
+                                    class="required">*</span></label><input autocomplete="given-name" id="firstName"
+                                maxlength="80" minlength="2" name="firstName" placeholder="Your Full name" required=""
+                                type="text" /><span class="field-error">Please enter your Full name.</span></div>
+                        <div class="field" id="fieldUniversity"><label for="university">University name <span
+                                    class="required">*</span></label><input autocomplete="organization" id="university"
+                                maxlength="120" name="university" placeholder="Your university" required=""
+                                type="text" /><span class="field-error">Please enter your university name.</span></div>
+                        <div class="field" id="fieldFaculty"><label for="faculty">Faculty / department <span
+                                    class="required">*</span></label><input autocomplete="organization-title"
+                                id="faculty" maxlength="120" name="faculty" placeholder="Your faculty or department"
+                                required="" type="text" /><span class="field-error">Please enter your faculty or
+                                department.</span></div>
+                        <div class="field" id="fieldWhatsapp"><label for="whatsapp">WhatsApp number <span
+                                    class="required">*</span></label><input autocomplete="tel" id="whatsapp"
+                                inputmode="tel" maxlength="24" name="whatsapp" placeholder="07X XXX XXXX or +94..."
+                                required="" type="tel" /><span class="helper">We’ll use this to share IEEE IES Day
+                                updates.</span><span class="field-error">Please enter a valid WhatsApp number.</span>
+                        </div>
+                    </div>
+                    <div aria-hidden="true" class="sr-only"><label>Website <input autocomplete="off" id="website"
+                                name="website" tabindex="-1" /></label></div>
+                    <p class="privacy">Your details will only be used to coordinate IEEE IES Day 2026.</p>
+                    <div class="error-banner" hidden="" id="formError" role="alert"></div>
+                    <button class="submit-button" id="submitButton" type="submit">Complete registration <span
+                            aria-hidden="true">→</span></button>
+                </form>
+                <div class="completed-banner" hidden="" id="completedBanner" role="status" tabindex="-1">✓ Registration
+                    completed. Thank you for joining us!</div>
+            </div>
+        </section>
+    </main>
+    <footer class="site-footer"><strong>IEEE IES Day 2026</strong> · University of Kelaniya<br />November 12 · 9:00 AM–12 noon · A11
+        Building Auditorium
+        <!-- Organizer contact details will be added here when provided. -->
+    </footer>
+    <div class="confirmation-overlay" hidden="" id="confirmationOverlay">
+        <div aria-describedby="confirmationText" aria-labelledby="confirmationTitle" aria-modal="true"
+            class="confirmation-modal" role="dialog">
+            <button aria-label="Close confirmation" class="close-modal" id="closeModal" type="button">×</button>
+            <div class="preview-alert" hidden="" id="previewAlert"><strong>Local preview</strong> — no details have been
+                saved.</div>
+            <div aria-hidden="true" class="modal-icon" id="modalIcon">✓</div>
+            <h2 id="confirmationTitle">Registration complete!</h2>
+            <p id="confirmationText">Your registration for IEEE IES Day is complete. We look forward to seeing you.</p>
+            <p class="welcome-note">November 12, 2026 · 9:00 AM–12 noon<br />A11 Building Auditorium</p>
+            <p class="modal-perks">Attendees receive an e-certificate. Join the quiz for a chance to win prizes!</p>
+            <p class="modal-footer">IEEE IES Day · University of Kelaniya</p>
+        </div>
+    </div>
+    <div aria-hidden="true" id="sparkLayer"></div>
+    <script defer src="site.js"></script>
+</body>
+
+</html>

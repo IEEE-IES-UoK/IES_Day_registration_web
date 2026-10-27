@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+previews/
+tests/
+test_site.py
+google-apps-script/
+netlify/
+netlify.toml
+node_modules/
+dist/
