@@ -2,7 +2,7 @@
 .env
 .env.*
 !.env.example
-.vercel/
+.netlify/
 dist/
 previews/
 node_modules/
