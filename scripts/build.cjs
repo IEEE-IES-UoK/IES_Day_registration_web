@@ -6,7 +6,13 @@ const {createHash} = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'dist');
 // Publish an explicit list of browser assets; server code and setup files stay private.
-const assets = ['styles.css', 'form-theme.css', 'site.js'];
+const assets = [
+  'styles.css',
+  'form-theme.css',
+  'site.js',
+  'assets/ies-day-logo.png',
+  'assets/ies-day-main-poster.webp'
+].filter(file => fs.existsSync(path.join(root, file)));
 let markup = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 fs.rmSync(output, {recursive: true, force: true});
 fs.mkdirSync(path.join(output, 'assets'), {recursive: true});

@@ -93,25 +93,38 @@ async function checkLayout(browser, width, height) {
 async function checkRegistration(browser) {
   const {context, page} = await openPage(browser, 390, 844);
   try {
-    assert.equal(await page.locator('#registrationForm input[required]').count(), 4);
+    assert.equal(await page.locator('#registrationForm input[required]').count(), 5);
     assert.equal(await page.locator('#instrumentToggle, #supportToggle, input[name="rehearsal"]').count(), 0);
     assert.equal(await page.locator('#studentId').count(), 0);
     assert.equal(await page.locator('#university').getAttribute('required'), '');
     assert.equal(await page.locator('#faculty').getAttribute('required'), '');
+    assert.equal(await page.locator('#email').getAttribute('required'), '');
     assert.equal(await page.evaluate(() => validate()), false);
 
     await page.locator('#firstName').fill('Example User');
+    await page.locator('#email').fill('not-an-email');
+    assert.equal(await page.evaluate(() => validate()), false);
+    await page.locator('#email').fill('example@example.com');
     await page.locator('#university').fill('Example University');
     await page.locator('#faculty').fill('Engineering');
     await page.locator('#whatsapp').fill('071 234 5678');
     assert.equal(await page.evaluate(() => validate()), true);
     const previewPayload = await page.evaluate(() => payload());
+    assert.equal(previewPayload.email, 'example@example.com');
     assert.equal(previewPayload.university, 'Example University');
     assert.equal(previewPayload.faculty, 'Engineering');
     assert.equal(previewPayload.whatsapp, '0712345678');
     for (const removed of ['studentId', 'singing', 'instruments', 'support', 'rehearsal']) {
       assert.equal(Object.hasOwn(previewPayload, removed), false, `${removed} must not be submitted.`);
     }
+    assert.equal(await page.locator('#whatsappCommunityLink').isHidden(), true);
+    assert.deepEqual(await page.evaluate(() => [
+      validCommunityInvite('https://chat.whatsapp.com/ExampleInvite123'),
+      validCommunityInvite('https://whatsapp.com/channel/ExampleChannel123'),
+      validCommunityInvite('http://chat.whatsapp.com/ExampleInvite123'),
+      validCommunityInvite('https://example.com/'),
+      validCommunityInvite('https://chat.whatsapp.com.evil.example/ExampleInvite123')
+    ]), [true, true, false, false, false]);
 
     await page.locator('#submitButton').click();
     await page.locator('#confirmationOverlay').waitFor({state: 'visible'});
@@ -123,6 +136,7 @@ async function checkRegistration(browser) {
 
     await page.evaluate(() => {
       CONFIG.previewMode = false;
+      CONFIG.whatsappCommunityUrl = 'https://chat.whatsapp.com/ExampleInvite123';
       window.__requests = [];
       window.fetch = async (url, options) => {
         window.__requests.push({url, body: JSON.parse(options.body)});
@@ -136,6 +150,10 @@ async function checkRegistration(browser) {
     assert.equal(requests[0].url, '/api/register');
     assert.equal(requests[0].body.university, 'Example University');
     assert.equal(requests[0].body.faculty, 'Engineering');
+    assert.equal(requests[0].body.email, 'example@example.com');
+    assert.equal(await page.locator('#whatsappCommunityLink').isVisible(), true);
+    assert.equal(await page.locator('#whatsappCommunityLink').getAttribute('href'), 'https://chat.whatsapp.com/ExampleInvite123');
+    assert.equal(await page.locator('#whatsappCommunityLink').getAttribute('rel'), 'noopener noreferrer');
     assert.equal(await page.locator('#registrationForm').isHidden(), true);
     assert.equal(await page.locator('#completedBanner').isVisible(), true);
   } finally { await context.close(); }
@@ -157,7 +175,7 @@ async function checkRegistration(browser) {
       assert.equal(await page.locator('.event-card').evaluate(element => getComputedStyle(element).animationName), 'none');
     } finally { await context.close(); }
     assert.deepEqual(errors, [], 'No uncaught browser errors are allowed.');
-    console.log('PASS: responsive IEEE IES Day hero, four registration fields, removed legacy questions, local preview, mocked submission, and reduced motion.');
+    console.log('PASS: responsive layout, five required fields, email validation, optional WhatsApp invite, local preview, mocked submission, and reduced motion.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 """

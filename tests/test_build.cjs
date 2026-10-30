@@ -8,7 +8,7 @@ const {createHash} = require('node:crypto');
 const {execFileSync} = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const browserAssets = ['styles.css', 'form-theme.css', 'site.js'];
+const browserAssets = ['styles.css', 'form-theme.css', 'site.js', 'assets/ies-day-logo.png', 'assets/ies-day-main-poster.webp'];
 
 function fingerprint(source, bytes) {
   const extension = path.extname(source);
@@ -33,9 +33,8 @@ test('production build publishes only fingerprinted browser assets and rewrites 
       fs.copyFileSync(path.join(root, source), destination);
     }
     // Private/deployment inputs must never be copied to the public output.
-    for (const source of ['.env', '.env.local', '.env.example', 'README.md', 'api/register.js',
-      'google-apps-script/Code.gs', 'netlify/functions/register.js', 'test_site.py',
-      'package.json', 'vercel.json', 'dist/stale-secret.txt']) {
+    for (const source of ['.env', '.env.local', '.env.example', 'README.md', 'google-apps-script/Code.gs', 'netlify/functions/register.js', 'test_site.py',
+      'package.json', 'dist/stale-secret.txt']) {
       const destination = path.join(fixture, source);
       fs.mkdirSync(path.dirname(destination), {recursive: true});
       fs.writeFileSync(destination, 'PRIVATE_BUILD_SENTINEL');

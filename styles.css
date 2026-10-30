@@ -115,7 +115,8 @@ body.dialog-open{overflow:hidden}
 .modal-icon{display:grid;place-items:center;width:68px;height:68px;margin:4px auto 18px;border-radius:50%;background:#edf7ee;color:#247745;font-size:34px;font-weight:800}
 .confirmation-modal h2{font:800 clamp(38px,10vw,53px)/.97 'Barlow Condensed',Impact,sans-serif;color:#174833;text-transform:uppercase;margin:0 0 15px}
 .confirmation-modal p{color:#687b6b;font-size:13.5px;line-height:1.6;margin:0 0 12px}.confirmation-modal .welcome-note{color:#aa3943;font-weight:800}
-.whatsapp-link{display:inline-flex;align-items:center;justify-content:center;min-height:55px;margin-top:17px;width:100%;border-radius:11px;background:#219e55;color:#fff;text-decoration:none;font-size:13px;font-weight:800;padding:12px}
+.whatsapp-community-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:55px;margin-top:17px;width:100%;border:1px solid #e8a05b;border-radius:11px;background:#9f350a;color:#fff;text-decoration:none;font-size:13px;font-weight:800;padding:12px;transition:background .2s,transform .2s}
+.whatsapp-community-link:hover{background:#812b09;transform:translateY(-1px)}
 .group-placeholder{border:1px dashed #c9dec9;background:#f6faf5;padding:14px;margin:17px 0 7px;font-size:12px;border-radius:11px;color:#52705e}
 .preview-alert{background:#fff6e1;border:1px solid #f0deae;border-radius:10px;padding:13px;margin:0 0 17px;color:#75591b;font-size:12px;line-height:1.6}
 .confirmation-modal .modal-footer{font-size:11px;margin-top:22px;color:#9ca69e}

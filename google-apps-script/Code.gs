@@ -1,12 +1,12 @@
 /**
- * IEEE IES Day 2026 — custom website -> Vercel API -> Google Sheets.
+ * IEEE IES Day 2026 — custom website -> Netlify API -> Google Sheets.
  * No Google Form is needed. Bind this project to the destination spreadsheet.
  * Run setupRegistrationSheet() once, then deploy as a Web App, executing as you.
- * Copy REGISTRATION_SECRET from Project Settings > Script properties into Vercel.
+ * Copy REGISTRATION_SECRET from Project Settings > Script properties into Netlify.
  * Never put that secret in the website or log it. Re-running setup preserves it.
  */
 const TAB_NAME = "Registrations";
-const SERVICE_VERSION = "2026-10-27-ieee-ies-day-1";
+const SERVICE_VERSION = "2026-10-27-ieee-ies-day-email-1";
 const TIME_ZONE = "Asia/Colombo";
 const MAX_BODY_BYTES = 8192;
 const INITIAL_ROWS = 1000;
@@ -14,6 +14,7 @@ const GROWTH_ROWS = 500;
 const HEADERS = [
   "Submitted At",
   "Full name",
+  "Email",
   "University",
   "Faculty / Department",
   "WhatsApp",
@@ -23,6 +24,7 @@ const PAYLOAD_KEYS = [
   "secret",
   "requestId",
   "firstName",
+  "email",
   "university",
   "faculty",
   "whatsapp",
@@ -140,6 +142,7 @@ function validatePayload_(data) {
       return PAYLOAD_KEYS.indexOf(key) === -1;
     }) ||
     !plainText_(data.firstName, 2, 80) ||
+    !plainText_(data.email, 3, 254) ||
     !plainText_(data.university, 2, 120) ||
     !plainText_(data.faculty, 2, 120) ||
     !plainText_(data.whatsapp, 8, 16) ||
@@ -152,12 +155,14 @@ function validatePayload_(data) {
   const normalized = {
     requestId: data.requestId.trim(),
     firstName: data.firstName.trim(),
+    email: data.email.trim(),
     university: data.university.trim(),
     faculty: data.faculty.trim(),
     whatsapp: data.whatsapp.trim(),
   };
   if (
     !/^[A-Za-z0-9-]{8,100}$/.test(normalized.requestId) ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalized.email) ||
     !/^(?:07\d{8}|\+?947\d{8}|\+?\d{8,15})$/.test(normalized.whatsapp)
   )
     return null;
@@ -173,6 +178,23 @@ function schemaWidth_(sheet) {
     ? width
     : 0;
 }
+function normalizePhone_(phone) {
+  var cleaned = String(phone || '').replace(/[\s().-]+/g, '').trim();
+  if (cleaned.indexOf('+') === 0) cleaned = cleaned.substring(1);
+  if (cleaned.indexOf('94') === 0 && cleaned.length === 11) cleaned = '0' + cleaned.substring(2);
+  return cleaned;
+}
+function hasDuplicatePhone_(sheet, column, lastRow, phone) {
+  if (lastRow < 2) return false;
+  var target = normalizePhone_(phone);
+  if (!target) return false;
+  var values = sheet.getRange(2, column, lastRow - 1, 1).getDisplayValues();
+  for (var i = 0; i < values.length; i++) {
+    if (normalizePhone_(values[i][0]) === target) return true;
+  }
+  return false;
+}
+
 function hasExactValue_(sheet, column, lastRow, value, matchCase) {
   if (lastRow < 2) return false;
   return (
@@ -235,9 +257,11 @@ function setupRegistrationSheet() {
     sheet.getRange(2, 1, dataRows, 1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
     sheet.getRange(2, 2, dataRows, HEADERS.length - 1).setNumberFormat("@");
     sheet.setColumnWidth(1, 165);
-    sheet.setColumnWidths(2, HEADERS.length - 1, 180);
+    sheet.setColumnWidths(2, 1, 180);
     sheet.setColumnWidths(3, 2, 240);
-    sheet.setColumnWidth(6, 290);
+    sheet.setColumnWidth(5, 260);
+    sheet.setColumnWidth(6, 150);
+    sheet.setColumnWidth(7, 290);
     if (!sheet.getFilter())
       sheet.getRange(1, 1, sheet.getMaxRows(), HEADERS.length).createFilter();
     phase = "flush";
@@ -251,7 +275,7 @@ function setupRegistrationSheet() {
       REGISTRATION_SECRET: secret,
     });
     console.info(
-      "Registration sheet ready. Copy REGISTRATION_SECRET from Script properties to Vercel; keep it private.",
+      "Registration sheet ready. Copy REGISTRATION_SECRET from Script properties to Netlify; keep it private.",
     );
     return result_(true, "READY");
   } catch (error) {
@@ -379,8 +403,12 @@ function doPost(event) {
     phase = "read-row-count";
     const lastRow = sheet.getLastRow();
     phase = "request-id-lookup";
-    if (hasExactValue_(sheet, 6, lastRow, registration.requestId, true)) {
+    if (hasExactValue_(sheet, 7, lastRow, registration.requestId, true)) {
       return output_(result_(true, "ALREADY_STORED", { alreadyStored: true }));
+    }
+    phase = "phone-lookup";
+    if (hasDuplicatePhone_(sheet, 6, lastRow, registration.whatsapp)) {
+      return output_(result_(false, "DUPLICATE_PHONE"));
     }
     phase = "ensure-capacity";
     const row = lastRow + 1;
@@ -405,6 +433,7 @@ function doPost(event) {
         [
           new Date(),
           cleanCell_(registration.firstName),
+          cleanCell_(registration.email),
           cleanCell_(registration.university),
           cleanCell_(registration.faculty),
           literalCell_(registration.whatsapp),

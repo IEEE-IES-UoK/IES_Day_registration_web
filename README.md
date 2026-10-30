@@ -7,22 +7,25 @@ Responsive single-page registration website for IEEE IES Day on **November 12, 2
 The form asks for:
 
 - Full name
+- Email address
 - University name
 - Faculty / department
 - WhatsApp number
 
-All four fields are required. Carols, singing, instruments, volunteer support, and rehearsal questions have been removed.
+All five fields are required. Carols, singing, instruments, volunteer support, and rehearsal questions have been removed.
+
+After a successful hosted registration, the confirmation popup can show a WhatsApp group or channel invitation. To enable it, set `whatsappCommunityUrl` in `site.js` to a secure WhatsApp group (`https://chat.whatsapp.com/...`) or channel (`https://whatsapp.com/channel/...`) link. It is intentionally blank by default, so the button stays hidden until organizers configure a valid invite.
 
 ## Files
 
 - `index.html` — event page, form fields, confirmation, and commented contact-detail placeholder
 - `styles.css` and `form-theme.css` — responsive layout and IEEE IES Day visual theme
 - `site.js` — validation, preview mode, submission, and confirmation
-- `api/register.js` — Vercel registration endpoint; secrets remain on the server
+- `api/register.js` — Netlify registration endpoint; secrets remain on the server
 - `google-apps-script/Code.gs` — Google Sheets setup, storage, locking, and safe retries
 - `google-apps-script/appsscript.json` — Apps Script runtime, timezone, and permissions
-- `vercel.json` and `scripts/build.cjs` — deployment configuration and fingerprinted production build
-- `GOOGLE_SHEETS_SETUP.md` — Google Sheet and Vercel deployment instructions
+- `Netlify.json` and `scripts/build.cjs` — deployment configuration and fingerprinted production build
+- `GOOGLE_SHEETS_SETUP.md` — Google Sheet and Netlify deployment instructions
 - `tests/` and `test_site.py` — endpoint, Apps Script, build, and browser checks
 
 ## Replace the event graphic with your poster
@@ -51,14 +54,14 @@ When the official poster is ready:
 
 The production build includes only assets listed in `scripts/build.cjs`; add the new poster path to its `assets` list so the poster is fingerprinted and deployed.
 
-## Configure Google Sheets and Vercel
+## Configure Google Sheets and Netlify
 
-The custom form posts to `/api/register`; no Google Form is needed. Follow [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md) to create the spreadsheet, run `setupRegistrationSheet()`, deploy the Apps Script web app, and configure these private Vercel environment variables:
+The custom form posts to `/api/register`; no Google Form is needed. Follow [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md) to create the spreadsheet, run `setupRegistrationSheet()`, deploy the Apps Script web app, and configure these private Netlify environment variables:
 
 - `GOOGLE_APPS_SCRIPT_URL`
 - `REGISTRATION_SECRET`
 
-Localhost/file previews do not save data. A hosted registration is confirmed only after storage succeeds. Existing Carols registration rows should be preserved in a separate archive tab; use a fresh `Registrations` tab for this event's new question schema.
+Localhost/file previews do not save data. A hosted registration is confirmed only after storage succeeds. Existing registration rows should be preserved in a separate archive tab; use a fresh `Registrations` tab for the updated question schema, which now includes email.
 
 ## Local preview and checks
 

@@ -2,6 +2,7 @@
 /* Site configuration: never put a backend secret into this file. */
 const CONFIG = {
   submissionEndpoint: '/api/register',
+  whatsappCommunityUrl: '',
   previewMode: location.protocol === 'file:' || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
 };
 const $ = id => document.getElementById(id);
@@ -30,8 +31,10 @@ function showError(message) {
 }
 function validate() {
   $('formError').hidden = true;
+  const email = $('email').value.trim();
   const valid = [
     fieldValidity('fieldFirstName', $('firstName').value.trim().length >= 2 && $('firstName').value.trim().length <= 80),
+    fieldValidity('fieldEmail', email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)),
     fieldValidity('fieldUniversity', $('university').value.trim().length >= 2 && $('university').value.trim().length <= 120),
     fieldValidity('fieldFaculty', $('faculty').value.trim().length >= 2 && $('faculty').value.trim().length <= 120),
     fieldValidity('fieldWhatsapp', /^(?:07\d{8}|\+?947\d{8}|\+?\d{8,15})$/.test($('whatsapp').value.replace(/[\s().-]+/g, '').trim()))
@@ -51,11 +54,23 @@ function payload() {
   return {
     requestId,
     firstName: $('firstName').value.trim(),
+    email: $('email').value.trim(),
     university: $('university').value.trim(),
     faculty: $('faculty').value.trim(),
     whatsapp: $('whatsapp').value.replace(/[\s().-]+/g, '').trim(),
     website: $('website').value
   };
+}
+function validCommunityInvite(url) {
+  try {
+    const invite = new URL(url);
+    if (invite.protocol !== 'https:' || invite.username || invite.password) return false;
+    if (invite.hostname === 'chat.whatsapp.com') return /^\/[A-Za-z0-9]+\/?$/.test(invite.pathname);
+    return ['whatsapp.com', 'www.whatsapp.com'].includes(invite.hostname) &&
+      /^\/channel\/[A-Za-z0-9]+\/?$/.test(invite.pathname);
+  } catch {
+    return false;
+  }
 }
 function openConfirmation(demo) {
   focusReturn = document.activeElement;
@@ -67,6 +82,10 @@ function openConfirmation(demo) {
   $('confirmationText').textContent = demo
     ? 'This is a local IEEE IES Day preview. Your details have not been saved. Use the deployed website to register.'
     : 'Your registration for IEEE IES Day is complete. We look forward to seeing you.';
+  const communityLink = $('whatsappCommunityLink');
+  const showCommunityLink = !demo && validCommunityInvite(CONFIG.whatsappCommunityUrl);
+  communityLink.hidden = !showCommunityLink;
+  if (showCommunityLink) communityLink.href = CONFIG.whatsappCommunityUrl;
   if (!demo) {
     submitted = true;
     siteForm.hidden = true;

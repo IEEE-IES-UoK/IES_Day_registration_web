@@ -31,7 +31,17 @@
             <div class="hero-inner">
                 <p class="hero-invitation">IEEE IES · UNIVERSITY OF KELANIYA</p>
                 <div class="hero-visual">
-                    <div class="event-card">
+                    <div class="poster-frame" id="heroPosterFrame">
+                        <img src="assets/ies-day-main-poster.webp"
+                             alt="Official IEEE IES Day 2026 event poster"
+                             width="1200" height="1200"
+                             decoding="async" fetchpriority="high"
+                             onerror="this.parentElement.style.display='none'; document.getElementById('heroEventCard').style.display='flex';" />
+                    </div>
+                    <div class="event-card" id="heroEventCard" style="display:none;">
+                        <div class="event-logo-box">
+                            <img src="assets/ies-day-logo.png" alt="IEEE IES Day Logo" class="event-logo" width="160" height="150" />
+                        </div>
                         <span class="event-card-kicker">YOU’RE INVITED</span>
                         <strong>IEEE<br />IES DAY</strong>
                         <span class="event-card-date">12 NOVEMBER 2026</span>
@@ -66,6 +76,10 @@
                                     class="required">*</span></label><input autocomplete="given-name" id="firstName"
                                 maxlength="80" minlength="2" name="firstName" placeholder="Your Full name" required=""
                                 type="text" /><span class="field-error">Please enter your Full name.</span></div>
+                        <div class="field" id="fieldEmail"><label for="email">Email address <span
+                                    class="required">*</span></label><input autocomplete="email" id="email"
+                                inputmode="email" maxlength="254" name="email" placeholder="you@example.com"
+                                required="" type="email" /><span class="field-error">Please enter a valid email address.</span></div>
                         <div class="field" id="fieldUniversity"><label for="university">University name <span
                                     class="required">*</span></label><input autocomplete="organization" id="university"
                                 maxlength="120" name="university" placeholder="Your university" required=""
@@ -109,6 +123,8 @@
             <p id="confirmationText">Your registration for IEEE IES Day is complete. We look forward to seeing you.</p>
             <p class="welcome-note">November 12, 2026 · 9:00 AM–12 noon<br />A11 Building Auditorium</p>
             <p class="modal-perks">Attendees receive an e-certificate. Join the quiz for a chance to win prizes!</p>
+            <a class="whatsapp-community-link" hidden href="#" id="whatsappCommunityLink"
+                rel="noopener noreferrer" target="_blank">Join our WhatsApp community <span aria-hidden="true">↗</span></a>
             <p class="modal-footer">IEEE IES Day · University of Kelaniya</p>
         </div>
     </div>

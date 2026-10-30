@@ -4,7 +4,7 @@ const {handler}=require('../netlify/functions/register.js');
 const originalFetch=global.fetch;
 const standard={
   requestId:'f6b279d8-6226-49f4-8d60-d01f5d94a601',
-  firstName:'Example',university:'University of Kelaniya',faculty:'Faculty of Science',
+  firstName:'Example',email:'example@example.com',university:'University of Kelaniya',faculty:'Faculty of Science',
   whatsapp:'0712345678'
 };
 const send=d=>handler({httpMethod:'POST',body:JSON.stringify(d)});
@@ -23,6 +23,7 @@ const read=r=>JSON.parse(r.body);
   assert.equal(result.statusCode,200);
   assert.equal(read(result).success,true);
   assert.equal(upstreamPayload.requestId,standard.requestId);
+  assert.equal(upstreamPayload.email,standard.email);
   assert.equal(upstreamPayload.secret,process.env.REGISTRATION_SECRET);
   assert.equal(upstreamPayload.university,standard.university);
   assert.equal(upstreamPayload.faculty,standard.faculty);
@@ -34,9 +35,10 @@ const read=r=>JSON.parse(r.body);
   assert.equal(upstreamPayload.faculty,'Engineering');
   global.fetch=()=>assert.fail('Ineligible registration must not reach storage');
   for(const change of [
+    {email:undefined},{email:null},{email:'not-an-email'},
     {university:undefined},{university:null},{university:123},{university:[]},{university:''},{university:'U'.repeat(121)},
     {faculty:undefined},{faculty:null},{faculty:23},{faculty:''},{faculty:'F'.repeat(121)},
-    {requestId:123},{firstName:{name:'Example'}},{whatsapp:[]},
+    {requestId:123},{firstName:{name:'Example'}},{email:'not-an-email'},{whatsapp:[]},
     {firstName:'Name\nInjected'},{whatsapp:'not-a-phone'}
   ]){
     result=await send({...standard,...change});
@@ -51,6 +53,10 @@ const read=r=>JSON.parse(r.body);
   global.fetch=async()=>new Response(JSON.stringify({success:false,code:'DUPLICATE'}),{status:200});
   result=await send(standard);
   assert.equal(result.statusCode,409);
+  global.fetch=async()=>new Response(JSON.stringify({success:false,code:'DUPLICATE_PHONE'}),{status:200});
+  result=await send(standard);
+  assert.equal(result.statusCode,409);
+  assert.equal(read(result).error,'You have already registered to the event with this phone number.');
   global.fetch=async()=>new Response('not json',{status:200});
   result=await send(standard);
   assert.equal(result.statusCode,502);
@@ -60,5 +66,5 @@ const read=r=>JSON.parse(r.body);
   result=await handler({httpMethod:'GET'});
   assert.equal(result.statusCode,405);
   global.fetch=originalFetch;
-  console.log('Passed: free-text university/faculty, required registration details, removed carols fields, invalid data, honeypot, duplicate response, malformed upstream, network error, method guard.');
+  console.log('Passed: required registration details including email, free-text university/faculty, removed carols fields, invalid data, honeypot, duplicate response, malformed upstream, network error, method guard.');
 })().catch(err=>{global.fetch=originalFetch;console.error(err);process.exit(1)});

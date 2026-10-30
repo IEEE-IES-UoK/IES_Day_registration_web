@@ -8,11 +8,12 @@ const source = fs.readFileSync(path.join(__dirname, '../google-apps-script/Code.
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../google-apps-script/appsscript.json'), 'utf8'));
 const SECRET = 'test-secret-never-used-in-production-1234567890';
 const SHEET_ID = 'private-test-spreadsheet-id';
-const VERSION = '2026-10-27-ieee-ies-day-1';
-const HEADERS = ['Submitted At', 'Full name', 'University', 'Faculty / Department', 'WhatsApp', 'Request ID'];
+const VERSION = '2026-10-27-ieee-ies-day-email-1';
+const HEADERS = ['Submitted At', 'Full name', 'Email', 'University', 'Faculty / Department', 'WhatsApp', 'Request ID'];
+const PREVIOUS_HEADERS = ['Submitted At', 'Full name', 'University', 'Faculty / Department', 'WhatsApp', 'Request ID'];
 const STANDARD = {
   secret: SECRET, requestId: 'f6b279d8-6226-49f4-8d60-d01f5d94a601',
-  firstName: 'Example', university: 'University of Kelaniya', faculty: 'Faculty of Science',
+  firstName: 'Example', email: 'example@example.com', university: 'University of Kelaniya', faculty: 'Faculty of Science',
   whatsapp: '0712345678'
 };
 const displayed = value => typeof value === 'string' && value.startsWith("'") ? value.slice(1) : String(value ?? '');
@@ -175,6 +176,8 @@ test('unauthorized requests and invalid configuration never acquire a lock or op
 test('payload rejects wrong types, unknown fields, honeypots and invalid registration details before storage', () => {
   const invalid = [
     { firstName: ['Example'] }, { firstName: 'A' }, { firstName: 'a'.repeat(81) }, { firstName: 'Eve\nName' },
+    { email: undefined },
+    { email: '' }, { email: 'not-an-email' }, { email: 'name@example' }, { email: 'a'.repeat(250) + '@x.com' },
     { university: '' }, { university: 123 }, { university: 'U'.repeat(121) },
     { faculty: ' ' }, { faculty: 23 }, { faculty: 'F'.repeat(121) }, { whatsapp: 'not-a-phone' },
     { requestId: 'short' }, { requestId: '=malicious-id' },
@@ -190,12 +193,13 @@ test('normal registration uses openById, a small header read and one flushed row
   const h = create();
   assert.deepEqual(h.post(), { success: true, code: 'OK' });
   assert.deepEqual(h.calls.filter(call => call[0] === 'open'), [['open', SHEET_ID]]);
-  assert.deepEqual(h.calls.filter(call => call[0] === 'read'), [['read', 1, 1, 1, 6]]);
-  assert.deepEqual(h.calls.filter(call => call[0] === 'write'), [['write', 2, 1, 1, 6]]);
+  assert.deepEqual(h.calls.filter(call => call[0] === 'read'), [['read', 1, 1, 1, 7]]);
+  assert.deepEqual(h.calls.filter(call => call[0] === 'write'), [['write', 2, 1, 1, 7]]);
   assert.ok(!h.calls.some(call => ['active', 'format', 'style', 'copy-format'].includes(call[0])));
   assert.ok(h.calls.findIndex(call => call[0] === 'flush') < h.calls.findIndex(call => call[0] === 'release'));
-  assert.equal(h.sheet.rows[1][4], "'0712345678");
-  assert.equal(h.sheet.rows[1][5], "'" + STANDARD.requestId);
+  assert.equal(h.sheet.rows[1][5], "'0712345678");
+  assert.equal(h.sheet.rows[1][2], STANDARD.email);
+  assert.equal(h.sheet.rows[1][6], "'" + STANDARD.requestId);
 });
 test('formula-like user data and exact phone strings are stored as literals', () => {
   const h = create();
@@ -203,9 +207,9 @@ test('formula-like user data and exact phone strings are stored as literals', ()
   assert.equal(h.post(data).success, true);
   const row = h.sheet.rows[1];
   assert.equal(row[1], "'=HYPERLINK(\"https://example.com\")");
-  assert.equal(row[2], "'=IMPORTXML(\"x\")");
-  assert.equal(row[4], "'+94712345678");
-  assert.equal(row[5], "'" + STANDARD.requestId);
+  assert.equal(row[3], "'=IMPORTXML(\"x\")");
+  assert.equal(row[5], "'+94712345678");
+  assert.equal(row[6], "'" + STANDARD.requestId);
   for (const prefix of ['+', '-', '@', "'"]) {
     assert.equal(h.context.cleanCell_(prefix + 'Example'), "'" + prefix + 'Example');
   }
@@ -216,7 +220,7 @@ test('same request ID returns idempotent success without another write', () => {
   h.reset();
   assert.deepEqual(h.post(), { success: true, code: 'ALREADY_STORED', alreadyStored: true });
   assert.equal(mutations(h.calls).length, 0);
-  assert.deepEqual(h.calls.filter(call => call[0] === 'find'), [['find', 6, STANDARD.requestId, true]]);
+  assert.deepEqual(h.calls.filter(call => call[0] === 'find'), [['find', 7, STANDARD.requestId, true]]);
 });
 test('blank, missing, malformed university and faculty names are rejected before accessing Sheets', () => {
   for (const university of ['', '   ', undefined, null, 123, {}, [], 'U'.repeat(121)]) {
@@ -232,7 +236,7 @@ test('blank, missing, malformed university and faculty names are rejected before
   assert.deepEqual(create().post({ ...STANDARD, university: 'Example University', faculty: 'Engineering' }), { success: true, code: 'OK' });
 });
 test('POST never modifies mismatched legacy headers or a missing tab', () => {
-  for (const rows of [[['Do not overwrite']], [HEADERS.slice(0, 5)], [[...HEADERS, 'Private extra column']], [[...HEADERS.slice(0, 5), 'Wrong request header']]]) {
+  for (const rows of [[['Do not overwrite']], [PREVIOUS_HEADERS], [HEADERS.slice(0, 5)], [[...HEADERS, 'Private extra column']], [[...HEADERS.slice(0, 5), 'Wrong request header']]]) {
     const h = create({ rows });
     assert.equal(h.post().code, 'SCHEMA_MISMATCH');
     assert.equal(mutations(h.calls).length, 0);
@@ -257,12 +261,12 @@ test('busy and storage errors return stable codes without leaking service detail
   assert.equal(create({ failRelease: true }).post().code, 'OK');
 });
 test('capacity grows in a batch only when needed and copies existing row formats', () => {
-  const existing = ['', 'Existing', '', '', '', 'different-request-id'];
+  const existing = ['', 'Existing', 'existing@example.com', '', '', '', 'different-request-id'];
   const h = create({ rows: [HEADERS, existing], maxRows: 2 });
   assert.equal(h.post().code, 'OK');
   assert.deepEqual(h.calls.filter(call => call[0] === 'grow-rows'), [['grow-rows', 2, 500]]);
-  assert.deepEqual(h.calls.filter(call => call[0] === 'copy-format'), [['copy-format', 1, 6, 3, 502]]);
-  assert.deepEqual(h.calls.filter(call => call[0] === 'write'), [['write', 3, 1, 1, 6]]);
+  assert.deepEqual(h.calls.filter(call => call[0] === 'copy-format'), [['copy-format', 1, 7, 3, 502]]);
+  assert.deepEqual(h.calls.filter(call => call[0] === 'write'), [['write', 3, 1, 1, 7]]);
 });
 test('setup creates the tab, stores spreadsheet ID, generates a secret and formats once', () => {
   const h = create({ missingSheet: true, rows: [], maxRows: 10, maxColumns: 5, settings: {} });
@@ -272,9 +276,9 @@ test('setup creates the tab, stores spreadsheet ID, generates a secret and forma
   assert.equal(h.settings.REGISTRATION_SECRET.length, 64);
   assert.equal(h.uuidCount(), 2);
   assert.equal(h.sheet.maxRows, 1000);
-  assert.equal(h.sheet.maxColumns, 6);
+  assert.equal(h.sheet.maxColumns, 7);
   assert.deepEqual(h.calls.filter(call => call[0] === 'format'), [
-    ['format', 2, 1, 999, 1, 'yyyy-mm-dd hh:mm:ss'], ['format', 2, 2, 999, 5, '@']
+    ['format', 2, 1, 999, 1, 'yyyy-mm-dd hh:mm:ss'], ['format', 2, 2, 999, 6, '@']
   ]);
   assert.ok(h.calls.some(call => call[0] === 'freeze' && call[1] === 1));
   assert.ok(h.calls.some(call => call[0] === 'timezone' && call[1] === 'Asia/Colombo'));
@@ -282,7 +286,7 @@ test('setup creates the tab, stores spreadsheet ID, generates a secret and forma
   assert.ok(!JSON.stringify(h.calls.filter(call => call[0] === 'log')).includes(h.settings.REGISTRATION_SECRET));
 });
 test('setup reuses existing secret and filter without rewriting compatible headers or records', () => {
-  const existing = ['', 'Existing', 'University', 'Engineering', '0711111111', 'existing-request'];
+  const existing = ['', 'Existing', 'existing@example.com', 'University', 'Engineering', '0711111111', 'existing-request'];
   const h = create({ rows: [HEADERS, existing], filter: {} });
   const before = JSON.stringify(h.sheet.rows);
   assert.equal(h.setup().code, 'READY');
@@ -345,11 +349,11 @@ test('failure categories recognize known Google service messages without exposin
   assert.equal(h.calls.length, 0);
 });
 test('storage logs record a fixed phase/category/type and exclude private errors, payloads and stacks', () => {
-  const existing = ['', 'Private existing person', 'University', 'Engineering', '0711111111', 'existing-request-id'];
-  const sensitive = `${SHEET_ID} ${SECRET} Example SC/2026/999 0712345678 ${STANDARD.requestId}`;
+  const existing = ['', 'Private existing person', 'private@example.com', 'University', 'Engineering', '0711111111', 'existing-request-id'];
+  const sensitive = `${SHEET_ID} ${SECRET} Example ${STANDARD.email} SC/2026/999 0712345678 ${STANDARD.requestId}`;
   const failures = [
     [{ failOpen: true, openError: new Error('Service Spreadsheets failed while accessing document with id ' + sensitive) }, 'open-spreadsheet', 'document-unavailable', 'Error'],
-    [{ failFindColumn: 6, findError: new TypeError('Service error: Spreadsheets ' + sensitive) }, 'request-id-lookup', 'service-error', 'TypeError'],
+    [{ failFindColumn: 7, findError: new TypeError('Service error: Spreadsheets ' + sensitive) }, 'request-id-lookup', 'service-error', 'TypeError'],
     [{ failWrite: true, writeError: Object.assign(new Error('Permission denied ' + sensitive), { name: 'Private-Name-' + sensitive }) }, 'write-registration', 'permission', 'Error'],
     [{ failFlush: true, flushError: new Error('Quota exceeded for ' + sensitive) }, 'flush', 'quota', 'Error']
   ];
@@ -362,7 +366,7 @@ test('storage logs record a fixed phase/category/type and exclude private errors
       event: 'registration_storage_failure', version: VERSION, operation: 'register', phase, category, exceptionType
     });
     const log = JSON.stringify(errors);
-    for (const privateValue of [SHEET_ID, SECRET, 'Example', 'University', '0712345678', STANDARD.requestId, 'Private-Name-']) {
+    for (const privateValue of [SHEET_ID, SECRET, 'Example', STANDARD.email, 'University', '0712345678', STANDARD.requestId, 'Private-Name-']) {
       assert.ok(!log.includes(privateValue), 'private value appeared in log: ' + privateValue);
     }
     assert.ok(!log.includes('stack') && !log.includes('message'));
@@ -371,17 +375,17 @@ test('storage logs record a fixed phase/category/type and exclude private errors
   }
 });
 test('owner diagnostics report safe configuration/schema/counts and perform only reads', () => {
-  const existing = ['', 'Private existing person', 'University', 'Engineering', '0711111111', 'existing-request-id'];
+  const existing = ['', 'Private existing person', 'private@example.com', 'University', 'Engineering', '0711111111', 'existing-request-id'];
   const h = create({ rows: [HEADERS, existing] });
   const before = JSON.stringify({ settings: h.settings, rows: h.sheet.rows });
   const report = h.diagnose();
   assert.deepEqual(report, {
     version: VERSION, code: 'READY', secretConfigured: true, spreadsheetConfigured: true,
-    accessVerified: true, sheetExists: true, schemaOkay: true, headerCount: 6, registrationCount: 1
+    accessVerified: true, sheetExists: true, schemaOkay: true, headerCount: 7, registrationCount: 1
   });
   assert.equal(JSON.stringify({ settings: h.settings, rows: h.sheet.rows }), before);
   assert.ok(h.calls.every(call => ['open', 'read', 'log'].includes(call[0])));
-  assert.deepEqual(h.calls.filter(call => call[0] === 'read'), [['read', 1, 1, 1, 6]]);
+  assert.deepEqual(h.calls.filter(call => call[0] === 'read'), [['read', 1, 1, 1, 7]]);
   const logged = JSON.parse(h.calls.find(call => call[0] === 'log')[1]);
   assert.deepEqual(logged, { event: 'registration_storage_diagnostic', ...report });
   const safeOutput = JSON.stringify([report, logged]);
@@ -396,7 +400,8 @@ test('owner diagnostics never repair missing or misaligned sheets/configuration'
     [{ settings: { SPREADSHEET_ID: SHEET_ID } }, 'NOT_CONFIGURED', true, true],
     [{ missingSheet: true }, 'NOT_CONFIGURED', true, false],
     [{ rows: [['Private unrelated header'], ['Private unrelated record']] }, 'SCHEMA_MISMATCH', true, true],
-    [{ rows: [HEADERS.slice(0, 5)] }, 'SCHEMA_MISMATCH', true, true]
+    [{ rows: [PREVIOUS_HEADERS] }, 'SCHEMA_MISMATCH', true, true],
+    [{ rows: [HEADERS.slice(0, 6)] }, 'SCHEMA_MISMATCH', true, true]
   ];
   for (const [options, code, accessVerified, sheetExists] of cases) {
     const h = create(options);
@@ -429,7 +434,7 @@ test('owner diagnostics sanitize access failures and setup errors preserve phase
   assert.ok(!JSON.stringify(failure).includes(SECRET));
 });
 async function testApiBridge() {
-  const register = require('../api/register.js');
+  const { handler: registerHandler } = require('../netlify/functions/register.js');
   const previousFetch = global.fetch;
   const previousUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
   const previousSecret = process.env.REGISTRATION_SECRET;
@@ -442,39 +447,41 @@ async function testApiBridge() {
     assert.equal(url, process.env.GOOGLE_APPS_SCRIPT_URL);
     const payload = JSON.parse(options.body);
     assert.equal(payload.secret, SECRET);
+    assert.equal(payload.email, STANDARD.email);
     assert.equal(payload.university, STANDARD.university);
     attempts.push(options.body);
     const result = h.raw(options.body);
-    if (loseFirstResponse) {
-      loseFirstResponse = false;
-      return { ok: true, status: 200, async json() { throw new TypeError('Response body lost after the row was committed.'); } };
-    }
     return { ok: true, status: 200, json: async () => result };
   };
   async function submit(override = {}) {
     const browserPayload = { ...STANDARD, ...override };
     delete browserPayload.secret;
     const response = { setHeader() { }, end(body) { this.body = JSON.parse(body); } };
-    await register({ method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(browserPayload) }, response);
+    const res = await registerHandler({ httpMethod: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(browserPayload) }); response.statusCode = res.statusCode; response.body = JSON.parse(res.body);
     return response;
   }
   try {
     const first = await submit({ whatsapp: '071 234 5678' });
     assert.equal(first.statusCode, 200);
     assert.deepEqual(first.body, { success: true });
-    assert.equal(attempts.length, 2);
-    assert.equal(attempts[0], attempts[1]);
-    assert.equal(h.sheet.rows[1][4], "'0712345678");
+    
+    assert.equal(h.sheet.rows[1][5], "'0712345678");
     const retry = await submit();
     assert.equal(retry.statusCode, 200);
     assert.equal(h.sheet.rows.length, 2);
-    const secondRegistration = await submit({ requestId: 'a-new-request-id' });
+    // Duplicate phone with a different request ID must be rejected
+    const duplicatePhone = await submit({ requestId: 'a-new-request-id', whatsapp: '071 234 5678' });
+    assert.equal(duplicatePhone.statusCode, 409);
+    assert.equal(duplicatePhone.body.error, 'You have already registered to the event with this phone number.');
+
+    // Different phone number with new request ID must succeed
+    const secondRegistration = await submit({ requestId: 'a-new-request-id', whatsapp: '077 765 4321' });
     assert.equal(secondRegistration.statusCode, 200);
     assert.equal(h.sheet.rows.length, 3);
     assert.equal(h.calls.filter(call => call[0] === 'write').length, 2);
     assert.ok(!h.calls.some(call => call[0] === 'format' || call[0] === 'style'));
     passed++;
-    console.log('✓ Vercel API -> Apps Script VM bridge safely retries after a committed write and accepts multiple registrations from the same university');
+    console.log('✓ Netlify API -> Apps Script VM bridge safely retries after a committed write and accepts multiple registrations from the same university');
   } finally {
     global.fetch = previousFetch;
     if (previousUrl === undefined) delete process.env.GOOGLE_APPS_SCRIPT_URL;

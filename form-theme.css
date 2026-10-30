@@ -37,6 +37,18 @@
   animation: poster-arrive .85s cubic-bezier(.2,.7,.2,1) both;
 }
 .event-card > * { flex-shrink: 0; max-width: 100%; }
+.event-logo-box {
+  display: block;
+  margin-bottom: 8px;
+}
+.event-logo {
+  display: block;
+  max-width: 160px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
+}
 .event-card-kicker {
   color: #ffb25c;
   font-size: clamp(10px, 2vw, 13px);
