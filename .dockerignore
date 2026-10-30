@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+.env.*
+node_modules
+previews
+__pycache__
+tests
+.vscode
+Dockerfile
+.dockerignore
+

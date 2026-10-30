@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "node scripts/build.cjs",
+    "start": "node server.js",
     "test": "node --test tests/test_netlify.cjs tests/test_apps_script.cjs tests/test_build.cjs",
     "test:ui": "python3 test_site.py"
   }
