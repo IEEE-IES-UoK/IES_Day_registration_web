@@ -3,7 +3,7 @@
 const CONFIG = {
   submissionEndpoint: '/api/register',
   whatsappCommunityUrl: '',
-  previewMode: location.protocol === 'file:' || ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+  previewMode: location.protocol === 'file:' || (new URLSearchParams(location.search).get('preview') === 'true')
 };
 const $ = id => document.getElementById(id);
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
