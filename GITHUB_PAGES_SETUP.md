@@ -1,72 +1,81 @@
-# GitHub Pages + Google Cloud Setup
+# GitHub Actions: Automated Google Cloud & GitHub Pages Deployment
 
-This branch (`githubpages`) is set up to host the frontend on **GitHub Pages** while communicating with the registration backend on **Google Cloud Run** (or any custom server).
+Whenever you push to the `githubpages` branch, the GitHub Action at [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) runs a two-step automated deployment:
 
----
-
-## Architecture
-
-```
-User Browser (GitHub Pages) ──── CORS POST ────▶ Google Cloud Run (/api/register) ────▶ Google Apps Script ────▶ Google Sheet
-(https://<username>.github.io/<repo>)            (https://<service-url>.a.run.app)       (keeps secret private)
-```
-
-1. **GitHub Pages**: Serves static HTML, CSS, JS, and poster assets.
-2. **Google Cloud Run**: Runs the lightweight server ([`server.js`](server.js) containerized via [`Dockerfile`](Dockerfile)) with CORS enabled for your GitHub Pages domain. It securely holds `REGISTRATION_SECRET` and `GOOGLE_APPS_SCRIPT_URL` without exposing them in the client.
-3. **Google Sheets / Apps Script**: Stores registrations and enforces duplicate phone checks.
+1. **Job 1 (Deploy Backend)**: Builds and deploys [`server.js`](server.js) container to **Google Cloud Run**, passing your Google Apps Script credentials securely.
+2. **Job 2 (Deploy Frontend)**: Captures the newly deployed Cloud Run URL, automatically injects it into `index.html`, fingerprints assets with `npm run build`, and deploys the frontend to **GitHub Pages**.
 
 ---
 
-## 1. Deploy the Backend to Google Cloud Run
+## Required Setup in Your GitHub Repository
 
-Run this command from your terminal:
+In your GitHub repository, go to **Settings → Secrets and variables → Actions** and configure the following:
+
+### 1. Repository Secrets (`Secrets` tab)
+
+Click **New repository secret** and add:
+
+| Secret Name | Value | Description |
+| :--- | :--- | :--- |
+| `GCP_SA_KEY` | `{ "type": "service_account", ... }` | Full JSON key file of a Google Cloud Service Account with Cloud Run deployment permissions. |
+| `GOOGLE_APPS_SCRIPT_URL` | `https://script.google.com/macros/s/.../exec` | Your Google Apps Script deployment URL. |
+| `REGISTRATION_SECRET` | `your-secret-key` | Your private registration secret from Apps Script. |
+
+---
+
+## How to Create the Service Account Key (`GCP_SA_KEY`)
+
+You can create this key in one command using your local `gcloud` CLI (replace `YOUR_PROJECT_ID` with your desired project, e.g. `imposter-510904`):
 
 ```bash
-gcloud run deploy ies-registration \
-  --source . \
-  --region asia-south1 \
-  --allow-unauthenticated \
-  --set-env-vars GOOGLE_APPS_SCRIPT_URL="https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",REGISTRATION_SECRET="your-copied-secret"
+# Set your project
+gcloud config set project YOUR_PROJECT_ID
+
+# Enable required Google APIs
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com iam.googleapis.com
+
+# Create Service Account
+gcloud iam service-accounts create github-deployer \
+    --display-name="GitHub Actions Cloud Run Deployer"
+
+# Grant roles to the service account
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/storage.admin"
+
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/artifactregistry.admin"
+
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/iam.serviceAccountUser"
+
+# Generate the JSON key file
+gcloud iam service-accounts keys create gcp-key.json \
+    --iam-account=github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com
 ```
 
-Once deployment completes, note down the Cloud Run Service URL:
-```
-https://ies-registration-xxxx.a.run.app
-```
+Open `gcp-key.json`, copy the entire text, and paste it into GitHub as the secret **`GCP_SA_KEY`**. *(Delete `gcp-key.json` from your local machine afterwards for safety).*
 
 ---
 
-## 2. Point Frontend to Your Cloud Run Backend
+## 2. Enable GitHub Pages
 
-In [`index.html`](index.html), find the `<script>` block in `<head>` and paste your Cloud Run URL:
+In your repository on GitHub:
+1. Go to **Settings → Pages**.
+2. Under **Build and deployment > Source**, select **GitHub Actions**.
 
-```html
-<script>
-    window.IES_CONFIG = {
-        backendUrl: 'https://ies-registration-xxxx.a.run.app',
-        whatsappCommunityUrl: '' // optional WhatsApp community invite
-    };
-</script>
-```
+---
 
-Rebuild:
+## 3. Trigger Deployment
+
+Now, every time you commit and push to the `githubpages` branch:
 ```bash
-npm run build
+git push origin githubpages
 ```
-
----
-
-## 3. Deploy Frontend to GitHub Pages
-
-### Automatic Deployment (GitHub Actions)
-A workflow has been added at [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml).
-
-1. Push this branch to GitHub:
-   ```bash
-   git push -u origin githubpages
-   ```
-2. Go to your GitHub repository:
-   - Click **Settings → Pages**.
-   - Under **Build and deployment > Source**, select **GitHub Actions**.
-3. Every push to the `githubpages` branch will automatically compile the site and deploy the `dist/` directory to GitHub Pages!
-
+GitHub Actions will automatically deploy both your Google Cloud backend and your GitHub Pages frontend!

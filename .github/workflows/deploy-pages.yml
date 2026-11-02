@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy Backend to Google Cloud and Frontend to GitHub Pages
 
 on:
   push:
@@ -12,17 +12,58 @@ permissions:
   id-token: write
 
 concurrency:
-  group: 'pages'
+  group: 'deploy-all'
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  # ========================================================
+  # Job 1: Deploy Backend to Google Cloud Run
+  # ========================================================
+  deploy-backend:
+    name: Deploy Backend (Cloud Run)
+    runs-on: ubuntu-latest
+    outputs:
+      backend_url: ${{ steps.deploy-run.outputs.url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run
+        id: deploy-run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ies-registration-backend
+          region: ${{ vars.GCP_REGION || 'asia-south1' }}
+          source: ./
+          flags: '--allow-unauthenticated'
+          env_vars: |
+            GOOGLE_APPS_SCRIPT_URL=${{ secrets.GOOGLE_APPS_SCRIPT_URL }}
+            REGISTRATION_SECRET=${{ secrets.REGISTRATION_SECRET }}
+
+      - name: Display Backend URL
+        run: echo "Deployed Cloud Run URL is ${{ steps.deploy-run.outputs.url }}"
+
+  # ========================================================
+  # Job 2: Build & Deploy Frontend to GitHub Pages
+  # ========================================================
+  deploy-frontend:
+    name: Deploy Frontend (GitHub Pages)
+    needs: deploy-backend
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -33,6 +74,18 @@ jobs:
 
       - name: Install dependencies
         run: npm ci || npm install
+
+      - name: Inject Cloud Run Backend URL into index.html
+        env:
+          BACKEND_URL: ${{ needs.deploy-backend.outputs.backend_url }}
+        run: |
+          echo "Injecting Backend URL: $BACKEND_URL"
+          node -e "
+            const fs = require('fs');
+            let html = fs.readFileSync('index.html', 'utf8');
+            html = html.replace(/backendUrl:\s*['\"][^'\"]*['\"]/, \`backendUrl: '\${process.env.BACKEND_URL}'\`);
+            fs.writeFileSync('index.html', html, 'utf8');
+          "
 
       - name: Build production site
         run: npm run build
@@ -48,4 +101,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
