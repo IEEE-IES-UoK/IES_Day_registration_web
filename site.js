@@ -1,8 +1,10 @@
 'use strict';
 /* Site configuration: never put a backend secret into this file. */
+// Site configuration: submissionEndpoint points to Cloud Run backend or relative path
+const BACKEND_URL = (window.IES_CONFIG && window.IES_CONFIG.backendUrl) || '';
 const CONFIG = {
-  submissionEndpoint: '/api/register',
-  whatsappCommunityUrl: '',
+  submissionEndpoint: BACKEND_URL ? (BACKEND_URL.replace(/\/+$/, '') + '/api/register') : '/api/register',
+  whatsappCommunityUrl: (window.IES_CONFIG && window.IES_CONFIG.whatsappCommunityUrl) || '',
   previewMode: location.protocol === 'file:' || (new URLSearchParams(location.search).get('preview') === 'true')
 };
 const $ = id => document.getElementById(id);
