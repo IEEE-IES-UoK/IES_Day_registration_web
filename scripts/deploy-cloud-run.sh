@@ -35,3 +35,4 @@ echo " Deployment Succeeded!"
 echo " Backend Service URL: $SERVICE_URL"
 echo " Next step: update 'backendUrl' in index.html with: $SERVICE_URL"
 echo "==================================================="
+

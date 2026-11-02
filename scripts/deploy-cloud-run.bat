@@ -59,3 +59,4 @@ if %ERRORLEVEL% equ 0 (
     echo.
     echo [ERROR] Deployment failed. Check the output above.
 )
+
