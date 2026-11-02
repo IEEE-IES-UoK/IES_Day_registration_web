@@ -69,3 +69,4 @@ A workflow has been added at [`.github/workflows/deploy-pages.yml`](.github/work
    - Click **Settings → Pages**.
    - Under **Build and deployment > Source**, select **GitHub Actions**.
 3. Every push to the `githubpages` branch will automatically compile the site and deploy the `dist/` directory to GitHub Pages!
+
