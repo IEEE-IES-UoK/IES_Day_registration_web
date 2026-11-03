@@ -14,6 +14,8 @@
     <meta
         content="IEEE IES Day: November 12, 2026, 9:00 AM–12 noon at the A11 Building Auditorium, University of Kelaniya. E-certificates for attendees and quiz prizes."
         property="og:description" />
+    <meta content="assets/ies-day-main-poster.webp" property="og:image" />
+    <link rel="preload" as="image" href="assets/ies-day-main-poster.webp" type="image/webp" fetchpriority="high" />
     <title>IEEE IES Day — Registration</title>
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
@@ -43,12 +45,13 @@
                         <img src="assets/ies-day-main-poster.webp"
                              alt="Official IEEE IES Day 2026 event poster"
                              width="1200" height="1200"
+                             loading="eager"
                              decoding="async" fetchpriority="high"
                              onerror="this.parentElement.style.display='none'; document.getElementById('heroEventCard').style.display='flex';" />
                     </div>
                     <div class="event-card" id="heroEventCard" style="display:none;">
                         <div class="event-logo-box">
-                            <img src="assets/ies-day-logo.png" alt="IEEE IES Day Logo" class="event-logo" width="160" height="150" />
+                            <img src="assets/ies-day-logo.png" alt="IEEE IES Day Logo" class="event-logo" width="160" height="149" loading="lazy" decoding="async" />
                         </div>
                         <span class="event-card-kicker">YOU’RE INVITED</span>
                         <strong>IEEE<br />IES DAY</strong>

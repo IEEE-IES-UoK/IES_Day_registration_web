@@ -36,6 +36,9 @@
   box-shadow: 0 32px 80px #080403a6, inset 0 0 0 7px #ff9a321a;
   animation: poster-arrive .85s cubic-bezier(.2,.7,.2,1) both;
 }
+.poster-frame img {
+  background: #100a08;
+}
 .event-card > * { flex-shrink: 0; max-width: 100%; }
 .event-logo-box {
   display: block;
@@ -46,6 +49,7 @@
   max-width: 160px;
   width: auto;
   height: auto;
+  aspect-ratio: 400 / 371;
   object-fit: contain;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
 }
