@@ -140,7 +140,10 @@ siteForm.addEventListener('submit', async event => {
     });
     let result;
     try { result = await response.json(); }
-    catch { throw Error('We could not confirm the registration. Please try again.'); }
+    catch {
+      if (response.status === 404) throw Error('Registration service is unreachable. Please refresh and try again.');
+      throw Error('We could not confirm the registration. Please try again.');
+    }
     if (!response.ok || result.success !== true) throw Error(result.error || 'We could not save your registration. Please try again.');
     openConfirmation(false);
   } catch (error) {

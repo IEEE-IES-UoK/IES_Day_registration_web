@@ -18,10 +18,12 @@ concurrency:
 jobs:
   # ========================================================
   # Job 1: Deploy Backend to Google Cloud Run
+  # Only runs if GCP_SA_KEY secret is configured in repository
   # ========================================================
   deploy-backend:
     name: Deploy Backend (Cloud Run)
     runs-on: ubuntu-latest
+    if: "${{ secrets.GCP_SA_KEY != '' }}"
     outputs:
       backend_url: ${{ steps.deploy-run.outputs.url }}
     steps:
@@ -54,10 +56,12 @@ jobs:
 
   # ========================================================
   # Job 2: Build & Deploy Frontend to GitHub Pages
+  # Runs independently when backend is already deployed or skipped
   # ========================================================
   deploy-frontend:
     name: Deploy Frontend (GitHub Pages)
     needs: deploy-backend
+    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -77,7 +81,7 @@ jobs:
 
       - name: Inject Cloud Run Backend URL into index.html
         env:
-          BACKEND_URL: ${{ needs.deploy-backend.outputs.backend_url }}
+          BACKEND_URL: ${{ needs.deploy-backend.outputs.backend_url || vars.BACKEND_URL || 'https://ies-registration-backend-vpool36b2a-el.a.run.app' }}
         run: |
           echo "Injecting Backend URL: $BACKEND_URL"
           node -e "
