@@ -18,28 +18,41 @@ concurrency:
 jobs:
   # ========================================================
   # Job 1: Deploy Backend to Google Cloud Run
-  # Only runs if GCP_SA_KEY secret is configured in repository
   # ========================================================
   deploy-backend:
     name: Deploy Backend (Cloud Run)
     runs-on: ubuntu-latest
-    if: "${{ secrets.GCP_SA_KEY != '' }}"
     outputs:
       backend_url: ${{ steps.deploy-run.outputs.url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check GCP Credentials
+        id: check-creds
+        env:
+          GCP_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -z "$GCP_KEY" ]; then
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY secret not configured in repository; skipping Cloud Run backend deployment."
+          else
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Authenticate to Google Cloud
+        if: steps.check-creds.outputs.has_creds == 'true'
         id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
+        if: steps.check-creds.outputs.has_creds == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Deploy to Cloud Run
+        if: steps.check-creds.outputs.has_creds == 'true'
         id: deploy-run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -52,16 +65,14 @@ jobs:
             REGISTRATION_SECRET=${{ secrets.REGISTRATION_SECRET }}
 
       - name: Display Backend URL
-        run: echo "Deployed Cloud Run URL is ${{ steps.deploy-run.outputs.url }}"
+        run: echo "Deployed Cloud Run URL is ${{ steps.deploy-run.outputs.url || 'https://ies-registration-backend-vpool36b2a-el.a.run.app' }}"
 
   # ========================================================
   # Job 2: Build & Deploy Frontend to GitHub Pages
-  # Runs independently when backend is already deployed or skipped
   # ========================================================
   deploy-frontend:
     name: Deploy Frontend (GitHub Pages)
     needs: deploy-backend
-    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
